@@ -1,19 +1,10 @@
-name: Deploy to AWS ECS
+name: CI - Tests Only
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-
-env:
-  AWS_REGION: us-west-2
-  ECR_BACKEND_REPOSITORY: idam-pam-backend
-  ECR_FRONTEND_REPOSITORY: idam-pam-frontend
-  ECS_SERVICE: idam-pam-service
-  ECS_CLUSTER: idam-pam-cluster
-  CONTAINER_NAME_BACKEND: idam-pam-backend
-  CONTAINER_NAME_FRONTEND: idam-pam-frontend
 
 jobs:
   test:
@@ -58,74 +49,14 @@ jobs:
         DATABASE_URL: postgres://postgres:password@localhost:5432/idam_pam_test?sslmode=disable
       run: go test -v ./...
 
-    - name: Build backend
-      run: go build -v -o main cmd/server/main.go
-
-  build-and-deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
+    - name: Set up Node
+      uses: actions/setup-node@v4
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+        node-version: 18
+        cache: 'npm'
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+    - name: Install frontend deps
+      run: npm ci
 
-    - name: Build and push backend image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        docker build -f Dockerfile.backend -t $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG
-        docker tag $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:latest
-        docker push $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:latest
-
-    - name: Build and push frontend image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        docker build -f Dockerfile.frontend -t $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$IMAGE_TAG
-        docker tag $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:latest
-        docker push $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:latest
-
-    - name: Download task definition
-      run: |
-        aws ecs describe-task-definition --task-definition ${{ env.ECS_SERVICE }} \
-          --query taskDefinition > task-definition.json
-
-    - name: Fill in the new image ID in the Amazon ECS task definition (backend)
-      id: task-def-backend
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: task-definition.json
-        container-name: ${{ env.CONTAINER_NAME_BACKEND }}
-        image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND_REPOSITORY }}:${{ github.sha }}
-
-    - name: Fill in the new image ID in the Amazon ECS task definition (frontend)
-      id: task-def-frontend
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: ${{ steps.task-def-backend.outputs.task-definition }}
-        container-name: ${{ env.CONTAINER_NAME_FRONTEND }}
-        image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND_REPOSITORY }}:${{ github.sha }}
-
-    - name: Deploy Amazon ECS task definition
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      with:
-        task-definition: ${{ steps.task-def-frontend.outputs.task-definition }}
-        service: ${{ env.ECS_SERVICE }}
-        cluster: ${{ env.ECS_CLUSTER }}
-        wait-for-service-stability: true
+    - name: Build frontend
+      run: npm run build
