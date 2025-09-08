@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - DATABASE_URL=postgres://postgres:root@host.docker.internal:5432/idam_pam?sslmode=disable
+      - JWT_SECRET=your-secret-key-change-in-production
+      - AWS_REGION=us-west-2
+      - KMS_KEY_ID=alias/idam-pam-key
+    volumes:
+      - ./.env:/app/.env
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
