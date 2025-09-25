@@ -32,6 +32,19 @@ A comprehensive Identity and Access Management (IDAM) + Privileged Access Manage
 * Comprehensive audit logging
 * Role-based permissions
 
+### Output
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a8393658-959c-45cc-afb7-d9cd77238d89" />
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d26eba08-5143-4caa-a43a-e93e78146d95" />
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/8c2585c0-be64-40fd-97cb-41d55bb36abf" />
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/adafadba-40a5-4bfe-98b4-d8ba3d3e7573" />
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/681cf9b3-5ffe-45b6-b235-67edb6c82f79" />
+
+
 ## 🏗️ Architecture
 
 ```
